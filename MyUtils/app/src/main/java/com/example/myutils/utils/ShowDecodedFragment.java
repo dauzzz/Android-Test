@@ -4,7 +4,6 @@ import android.graphics.SurfaceTexture;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Surface;
@@ -13,7 +12,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.myutils.AutoFitTextureView;
@@ -21,12 +19,17 @@ import com.example.myutils.R;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
+import java.util.Queue;
 
-public class ShowDecodedFragment extends Fragment implements TextureView.SurfaceTextureListener {
+public class ShowDecodedFragment extends Fragment implements TextureView.SurfaceTextureListener{
 
     private AutoFitTextureView textureView;
+
+    public ShowDecodedFragment(Queue sharedQ) {
+        this.sharedQ = sharedQ;
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState){
         in=0;
@@ -45,43 +48,48 @@ public class ShowDecodedFragment extends Fragment implements TextureView.Surface
     }
     //--------------------------------------------------------------------------------
     private int in;
-    private OnInputBufferAvailableFromEncoder onInputBufferAvailableFromEncoder;
     private Decoder decoder;
     private Surface outSurface;
+    private final Queue sharedQ;
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
         Log.i("inputSurface","input surface created");
-        SurfaceTexture surfaceTexture = textureView.getSurfaceTexture();
-        surfaceTexture.setDefaultBufferSize(480,640);
+        final SurfaceTexture surfaceTexture = textureView.getSurfaceTexture();
+        surfaceTexture.setDefaultBufferSize(1280,960);
         outSurface = new Surface(surfaceTexture);
 
-        decoder = new Decoder() {
+        decoder = new Decoder(sharedQ) {
             @Override
             protected MediaCodec.Callback setCodecCallback() {
                 return new MediaCodec.Callback() {
                     @Override
                     public void onInputBufferAvailable(@NonNull MediaCodec codec, int index) {
+                        Log.i("Async input", "Input Buffer Thread : "+ Thread.currentThread());
                         final ByteBuffer byteBuffer = codec.getInputBuffer(index);
                         assert byteBuffer != null;
-                        Log.i("input", byteBuffer.toString());
-                        CameraFragment.OutBuffer outBuffer = new CameraFragment.OutBuffer() {
-                            @Override
-                            public void outputBufferIs(byte[] b) {
-                                //Log.i("input", b.toString());
-                                //byteBuffer.put(b);
-                            }
-                        };
-                        //if(onInputBufferAvailableFromEncoder.getByteBuffer(in) != null) {
-                        //byteBuffer.put(onInputBufferAvailableFromEncoder.getByteBuffer(in));
-                        in++;
-                        Log.i("infoInInputDecoder",Integer.toString(in));
-                        codec.queueInputBuffer(index,0,byteBuffer.capacity(), 40000,0);
-                        //}
+                        byteBuffer.clear();
+                        synchronized (sharedQ) {
+                            if (sharedQ.size() != 0) {
+                                Log.i("sharedQ output","decode "+in);
+                                byteBuffer.put((ByteBuffer) Objects.requireNonNull(sharedQ.poll()));
+                                in++;
+                            } /*else {
+                                try {
+                                    Log.i("sharedQ input","waiting");
+                                    sharedQ.wait();
+                                    Log.i("sharedQ input","end waiting");
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }*/
+                            Log.i("infoInInputDecoder", Integer.toString(in));
+                        }
+                        codec.queueInputBuffer(index, 0, byteBuffer.capacity(), 40000, 0);
                     }
 
                     @Override
                     public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
-
+                        codec.releaseOutputBuffer(index,true);
                     }
 
                     @Override
@@ -102,12 +110,7 @@ public class ShowDecodedFragment extends Fragment implements TextureView.Surface
                 return outSurface;
             }
         };
-        try {
-            decoder.setDecoder();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        decoder.startDecoderCodec();
+        decoder.start();
     }
 
     @Override
@@ -126,15 +129,4 @@ public class ShowDecodedFragment extends Fragment implements TextureView.Surface
 
     }
     //--------------------------------------------------------------------------------
-    public interface OnInputBufferAvailableFromEncoder{
-        //@Nullable public ByteBuffer getByteBuffer(int in);//{return cameraFragment.getEncodedOutputBuffer(in)}
-        public ArrayList<ByteBuffer> getByteList();
-        //public int getOrder(int in);
-    }
-    //--------------------------------------------------------------------------------
-    public int getListIndex(){return in;}
-    //--------------------------------------------------------------------------------
-    public void startDecode(){
-        decoder.startDecoderCodec();
-    }
 }

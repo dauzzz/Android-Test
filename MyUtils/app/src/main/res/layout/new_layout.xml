@@ -4,19 +4,15 @@
     android:layout_height="match_parent">
 
     <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="0.95"
-        android:id="@+id/cameraFragment" />
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="0.95"
-        android:id="@+id/playbackFragment" />
-    <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_weight="0.1"
-        android:text="startDecode"
-        android:id="@+id/button"/>
+        android:layout_weight="1"
+        android:id="@+id/cameraFragment" />
+
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:id="@+id/playbackFragment" />
+
 </LinearLayout>

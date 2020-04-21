@@ -40,14 +40,23 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
 
-public class CameraFragment extends Fragment implements TextureView.SurfaceTextureListener {
+// the problem when we use interface is,
+
+public class CameraFragment extends Fragment implements TextureView.SurfaceTextureListener  {
 
     private AutoFitTextureView textureView;
 
-    private ArrayList<ByteBuffer> outputBufferHolder = new ArrayList<>();
+    private final Queue sharedQ;
 
-    OutBuffer outBuffer;
+    public CameraFragment(Queue sharedQ) {
+        this.sharedQ = sharedQ;
+    }
+
+    int i = 0;
+
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState){
@@ -56,7 +65,6 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
 
     @Override
     public void onViewCreated(final View view, final Bundle savedInstanceState){
-        assert outputBufferHolder != null;
         textureView = (AutoFitTextureView) view.findViewById(R.id.cameraView);
         textureView.setAspectRatio(480,640);
         textureView.setSurfaceTextureListener(this);
@@ -74,20 +82,14 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
 
                         @Override
                         public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
-                            //ByteBuffer buffer = codec.getOutputBuffer(index);
-                            //assert buffer != null;
-                            //outputBufferHolder.add(buffer);
-                            //Log.i("outputBufferHolder",Integer.toString(outputBufferHolder.size()));
-                            //Log.i("outputBuffer", buffer.toString());
-                            ByteBuffer buf = codec.getOutputBuffer(index);
-                            byte[] byte2 = new byte[buf.remaining()];
-                            Log.i("getByte1", Integer.toString(buf.remaining()));
-                            buf.get(byte2,0,byte2.length);
-                            //outBuffer.outputBufferIs(byte2);
-                            Log.i("innerByte",byte2.toString());
-                            Log.i("getByte2", Integer.toString(buf.remaining()));
-                            //outBuffer.outputBufferIs(buffer);
-                            codec.releaseOutputBuffer(index, false);
+                            Log.i("Async output", "Output Buffer Thread : "+ Thread.currentThread());
+                            synchronized (sharedQ){
+                                sharedQ.add(codec.getOutputBuffer(index));
+                                Log.i("sharedQ input","encode "+i);
+                                i++;
+                                //sharedQ.notify();
+                                codec.releaseOutputBuffer(index, false);
+                            }
                         }
 
                         @Override
@@ -101,9 +103,11 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
                         }
                     };
                 }
+
+
             };
-            encoder.setEncoder();
-        } catch (InterruptedException | CameraAccessException | IOException e) {
+        encoder.start();
+        } catch (InterruptedException | CameraAccessException e) {
             e.printStackTrace();
         }
     }
@@ -138,7 +142,6 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
     //--------------------------------------------------------------------------------
     private CameraManager cameraManager;
     private CameraCaptureSession cameraCaptureSession;
-    private Size[] inputCameraSize;
     private String cameraId;
     private static final String LOGTAG = "CameraFragment";
     private void setCameraSettings() throws CameraAccessException {
@@ -153,7 +156,7 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
         CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId);
         StreamConfigurationMap streamConfigurationMap = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         assert streamConfigurationMap != null;
-        inputCameraSize = streamConfigurationMap.getOutputSizes(ImageFormat.YUV_420_888);
+        Size[] inputCameraSize = streamConfigurationMap.getOutputSizes(ImageFormat.YUV_420_888);
     }
     //--------------------------------------------------------------------------------
     private static final int CAMERA_REQUEST = 200;
@@ -181,8 +184,6 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
     private Surface surface;
     private Encoder encoder;
 
-    private SetOnCameraOk setOnCameraOk;
-    private int decodeStartFlag = 1;
     private CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
@@ -210,19 +211,12 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
             @Override
             public void onConfigured(@NonNull CameraCaptureSession session) {
                 cameraCaptureSession = session;
-                encoder.startEncoderCodec();
                 try {
-                    cameraCaptureSession.setRepeatingRequest(previewBuilder.build(), new CameraCaptureSession.CaptureCallback() {
-                        @Override
-                        public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
-                            super.onCaptureStarted(session, request, timestamp, frameNumber);
-                        }
-                    }, null);
+                    cameraCaptureSession.setRepeatingRequest(previewBuilder.build(), null, null);
                 } catch (CameraAccessException e) {
                     e.printStackTrace();
                 }
             }
-
             @Override
             public void onConfigureFailed(@NonNull CameraCaptureSession session) {
 
@@ -254,6 +248,7 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
         try {
+            Log.i("surface camera", "opening camera");
             openCamera();
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -276,19 +271,5 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
 
     }
     //--------------------------------------------------------------------------------
-    public ByteBuffer getEncodedOutputBuffer(int in){
-            if (outputBufferHolder.size() > in)
-                return outputBufferHolder.get(in);
-            else return outputBufferHolder.get(outputBufferHolder.size() - 1);
-    }
-    public ArrayList<ByteBuffer> getEncodedList(){
-        return outputBufferHolder;
-    }
-    public interface OutBuffer {
-        public void outputBufferIs(byte[] b);
-    }
-    //--------------------------------------------------------------------------------
-    public interface SetOnCameraOk{
-        public void setDecoder();
-    }
+
 }

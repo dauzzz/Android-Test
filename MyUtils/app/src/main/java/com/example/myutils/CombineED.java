@@ -15,52 +15,27 @@ import com.example.myutils.utils.ShowDecodedFragment;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 @SuppressLint("Registered")
-public class CombineED extends AppCompatActivity implements ShowDecodedFragment.OnInputBufferAvailableFromEncoder,CameraFragment.SetOnCameraOk {
+public class CombineED extends AppCompatActivity {
 
-    CameraFragment cameraFragment;
-    ShowDecodedFragment showDecodedFragment;
-    Button button;
-    int flag = 1;
+    public CameraFragment cameraFragment;
+    public ShowDecodedFragment showDecodedFragment;
+    private final Queue sharedQ = new LinkedList();
 
     @Override
     public void onCreate(Bundle s) {
         super.onCreate(s);
         setContentView(R.layout.new_layout);
 
-        button = findViewById(R.id.button);
-        button.setOnClickListener(onClickListener);
-
-        cameraFragment = new CameraFragment();
-        showDecodedFragment = new ShowDecodedFragment();
+        cameraFragment = new CameraFragment(sharedQ);
+        showDecodedFragment = new ShowDecodedFragment(sharedQ);
         FragmentTransaction transaction1 = getSupportFragmentManager().beginTransaction();
-        transaction1.replace(R.id.cameraFragment,cameraFragment).addToBackStack(null).commit();
+        transaction1.replace(R.id.cameraFragment, cameraFragment).addToBackStack(null).commit();
         FragmentTransaction transaction2 = getSupportFragmentManager().beginTransaction();
-        transaction2.replace(R.id.playbackFragment,showDecodedFragment).addToBackStack(null).commit();
+        transaction2.replace(R.id.playbackFragment, showDecodedFragment).addToBackStack(null).commit();
     }
-
-    @Override
-    @Nullable
-    //public ByteBuffer getByteBuffer(int in) {
-    public ArrayList<ByteBuffer> getByteList(){
-        //return cameraFragment.getEncodedOutputBuffer(in);
-        return cameraFragment.getEncodedList();
-    }
-
-    @Override
-    public void setDecoder() {
-        showDecodedFragment.startDecode();
-    }
-
-    private View.OnClickListener onClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if(flag == 1) {
-                showDecodedFragment.startDecode();
-                flag = 0;
-            }
-        }
-    };
 }
