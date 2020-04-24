@@ -34,23 +34,22 @@ import androidx.fragment.app.Fragment;
 import com.example.myutils.AutoFitTextureView;
 import com.example.myutils.R;
 
-import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 
 // the problem when we use interface is,
 
-public class CameraFragment extends Fragment implements TextureView.SurfaceTextureListener  {
+public class CameraFragment extends Fragment implements TextureView.SurfaceTextureListener {
 
     private AutoFitTextureView textureView;
 
-    private final Queue sharedQ;
+    private final BlockingQueue<ByteBuffer> sharedQ;
 
-    public CameraFragment(Queue sharedQ) {
+    public CameraFragment(BlockingQueue<ByteBuffer> sharedQ) {
         this.sharedQ = sharedQ;
     }
 
@@ -71,42 +70,8 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
         try {
             startCameraHandler();
             setCameraSettings();
-            encoder = new Encoder() {
-                @Override
-                protected MediaCodec.Callback setCodecCallback() {
-                    return new MediaCodec.Callback() {
-                        @Override
-                        public void onInputBufferAvailable(@NonNull MediaCodec codec, int index) {
-
-                        }
-
-                        @Override
-                        public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
-                            Log.i("Async output", "Output Buffer Thread : "+ Thread.currentThread());
-                            synchronized (sharedQ){
-                                sharedQ.add(codec.getOutputBuffer(index));
-                                Log.i("sharedQ input","encode "+i);
-                                i++;
-                                //sharedQ.notify();
-                                codec.releaseOutputBuffer(index, false);
-                            }
-                        }
-
-                        @Override
-                        public void onError(@NonNull MediaCodec codec, @NonNull MediaCodec.CodecException e) {
-
-                        }
-
-                        @Override
-                        public void onOutputFormatChanged(@NonNull MediaCodec codec, @NonNull MediaFormat format) {
-
-                        }
-                    };
-                }
-
-
-            };
-        encoder.start();
+            encoder = new Encoder(sharedQ);
+            encoder.start();
         } catch (InterruptedException | CameraAccessException e) {
             e.printStackTrace();
         }
@@ -192,7 +157,6 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
             assert surfaceTexture != null;
             surfaceTexture.setDefaultBufferSize(480,640);
             surface = new Surface(surfaceTexture);
-            Log.i("test",Integer.toString(surface.describeContents()));
             try {
                 previewBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
                 previewBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_MODE_AUTO);
@@ -270,6 +234,6 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
     public void onSurfaceTextureUpdated(SurfaceTexture surface) {
 
     }
-    //--------------------------------------------------------------------------------
 
+    //--------------------------------------------------------------------------------
 }

@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.example.myutils.utils.CameraFragment;
+import com.example.myutils.utils.Decoder;
 import com.example.myutils.utils.ShowDecodedFragment;
 
 import java.nio.ByteBuffer;
@@ -18,13 +19,15 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @SuppressLint("Registered")
 public class CombineED extends AppCompatActivity {
 
     public CameraFragment cameraFragment;
     public ShowDecodedFragment showDecodedFragment;
-    private final Queue sharedQ = new LinkedList();
+    private final BlockingQueue<ByteBuffer> sharedQ = new LinkedBlockingQueue<>();
 
     @Override
     public void onCreate(Bundle s) {
@@ -38,4 +41,5 @@ public class CombineED extends AppCompatActivity {
         FragmentTransaction transaction2 = getSupportFragmentManager().beginTransaction();
         transaction2.replace(R.id.playbackFragment, showDecodedFragment).addToBackStack(null).commit();
     }
+
 }

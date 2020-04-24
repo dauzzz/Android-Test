@@ -8,18 +8,27 @@ import android.util.Size;
 public class SetMatrix {
     private Matrix matrix = new Matrix();
 
-    private SetMatrix(float cameraRatio, float screenRatio, Size cameraSize, Size screenSize){
+    SetMatrix(Size oldSize, Size newSize){
         Size size;
-        if(cameraRatio > screenRatio){
-            size = new Size((int) (screenSize.getHeight()*cameraRatio),screenSize.getHeight());
-        } else if (cameraRatio < screenRatio){
-            size = new Size (screenSize.getWidth(), (int) (screenSize.getWidth()/cameraRatio));
-        } else {
-            size = screenSize;
+        float oldRatio = (float) oldSize.getWidth()/oldSize.getHeight();
+        float newRatio = (float) newSize.getWidth()/newSize.getHeight();
+        if((oldRatio < 1 && newRatio > 1)||(oldRatio > 1 && newRatio < 1) ) {
+            newRatio = 1 / newRatio;
+            newSize = new Size(newSize.getHeight(),newSize.getWidth());
         }
-        RectF oldRectF = new RectF(0 ,0 ,screenSize.getWidth(),screenSize.getHeight());
+        if(newRatio > oldRatio){
+            size = new Size((int) (newSize.getHeight()*oldRatio),newSize.getHeight());
+        } else if (newRatio < oldRatio){
+            size = new Size (newSize.getWidth(), (int) (newSize.getWidth()/oldRatio));
+        } else {
+            size = newSize;
+        }
+        RectF oldRectF = new RectF(0 ,0 ,oldSize.getWidth(),oldSize.getHeight());
         RectF newRectF = new RectF(0 ,0 ,size.getWidth(), size.getHeight());
+        Log.i("TMatrix",oldRectF.toString()+" "+newRectF.toString());
         matrix.setRectToRect(oldRectF, newRectF, Matrix.ScaleToFit.FILL);
+        matrix.postRotate(90);
+        matrix.postTranslate(0,-780);
     }
 
     public Matrix getMatrix(){return matrix;}

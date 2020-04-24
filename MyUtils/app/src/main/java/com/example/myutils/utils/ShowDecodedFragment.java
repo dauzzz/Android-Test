@@ -1,10 +1,14 @@
 package com.example.myutils.utils;
 
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Size;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
@@ -21,12 +25,13 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 
-public class ShowDecodedFragment extends Fragment implements TextureView.SurfaceTextureListener{
+public class ShowDecodedFragment extends Fragment implements TextureView.SurfaceTextureListener  {
 
     private AutoFitTextureView textureView;
 
-    public ShowDecodedFragment(Queue sharedQ) {
+    public ShowDecodedFragment(BlockingQueue<ByteBuffer> sharedQ) {
         this.sharedQ = sharedQ;
     }
 
@@ -50,66 +55,16 @@ public class ShowDecodedFragment extends Fragment implements TextureView.Surface
     private int in;
     private Decoder decoder;
     private Surface outSurface;
-    private final Queue sharedQ;
+    private final BlockingQueue<ByteBuffer> sharedQ;
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
         Log.i("inputSurface","input surface created");
+        //SetMatrix matrix = new SetMatrix( new Size(width,height),new Size(640,480));
+        //textureView.setTransform(matrix.getMatrix());
         final SurfaceTexture surfaceTexture = textureView.getSurfaceTexture();
-        surfaceTexture.setDefaultBufferSize(1280,960);
+        surfaceTexture.setDefaultBufferSize(640,480);
         outSurface = new Surface(surfaceTexture);
-
-        decoder = new Decoder(sharedQ) {
-            @Override
-            protected MediaCodec.Callback setCodecCallback() {
-                return new MediaCodec.Callback() {
-                    @Override
-                    public void onInputBufferAvailable(@NonNull MediaCodec codec, int index) {
-                        Log.i("Async input", "Input Buffer Thread : "+ Thread.currentThread());
-                        final ByteBuffer byteBuffer = codec.getInputBuffer(index);
-                        assert byteBuffer != null;
-                        byteBuffer.clear();
-                        synchronized (sharedQ) {
-                            if (sharedQ.size() != 0) {
-                                Log.i("sharedQ output","decode "+in);
-                                byteBuffer.put((ByteBuffer) Objects.requireNonNull(sharedQ.poll()));
-                                in++;
-                            } /*else {
-                                try {
-                                    Log.i("sharedQ input","waiting");
-                                    sharedQ.wait();
-                                    Log.i("sharedQ input","end waiting");
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }*/
-                            Log.i("infoInInputDecoder", Integer.toString(in));
-                        }
-                        codec.queueInputBuffer(index, 0, byteBuffer.capacity(), 40000, 0);
-                    }
-
-                    @Override
-                    public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
-                        codec.releaseOutputBuffer(index,true);
-                    }
-
-                    @Override
-                    public void onError(@NonNull MediaCodec codec, @NonNull MediaCodec.CodecException e) {
-
-                    }
-
-                    @Override
-                    public void onOutputFormatChanged(@NonNull MediaCodec codec, @NonNull MediaFormat format) {
-
-                    }
-                };
-
-            }
-
-            @Override
-            protected Surface setDecodedSurface() {
-                return outSurface;
-            }
-        };
+        decoder = new Decoder(sharedQ, outSurface);
         decoder.start();
     }
 
@@ -128,5 +83,6 @@ public class ShowDecodedFragment extends Fragment implements TextureView.Surface
     public void onSurfaceTextureUpdated(SurfaceTexture surface) {
 
     }
+
     //--------------------------------------------------------------------------------
 }
