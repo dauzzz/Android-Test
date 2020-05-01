@@ -1,4 +1,4 @@
-package com.example.myutils.utils;
+package com.example.myapplication;
 
 import android.Manifest;
 import android.content.Context;
@@ -13,8 +13,6 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
-import android.media.MediaCodec;
-import android.media.MediaFormat;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -25,20 +23,19 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
-import com.example.myutils.AutoFitTextureView;
-import com.example.myutils.R;
+import com.example.myapplication.AutoFitTextureView;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
 // the problem when we use interface is,
@@ -47,15 +44,17 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
 
     private AutoFitTextureView textureView;
 
-    private final BlockingQueue<ByteBuffer> sharedQ;
+    private final BlockingQueue<byte[]> sharedQ;
 
-    public CameraFragment(BlockingQueue<ByteBuffer> sharedQ) {
+    public CameraFragment(BlockingQueue<byte[]> sharedQ) {
         this.sharedQ = sharedQ;
     }
 
     int i = 0;
 
+    private Button button;
 
+    private MQTT mqtt;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState){
@@ -67,11 +66,19 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
         textureView = (AutoFitTextureView) view.findViewById(R.id.cameraView);
         textureView.setAspectRatio(480,640);
         textureView.setSurfaceTextureListener(this);
+        button = (Button) view.findViewById(R.id.buttonId);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mqtt.start();
+            }
+        });
         try {
             startCameraHandler();
             setCameraSettings();
             encoder = new Encoder(sharedQ);
             encoder.start();
+            mqtt = new MQTT(sharedQ);
         } catch (InterruptedException | CameraAccessException e) {
             e.printStackTrace();
         }
@@ -167,6 +174,7 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
                 mSurface.add(surface);
                 mSurface.add(encoderSurface);
                 cameraDevice.createCaptureSession(mSurface,captureSessionCallback,null);
+                mqtt.start();
             } catch (CameraAccessException e) {
                 e.printStackTrace();
             }
@@ -204,6 +212,7 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
         encoder.releaseAll();
         try {
             stopCameraThread();
+            mqtt.release();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -211,8 +220,8 @@ public class CameraFragment extends Fragment implements TextureView.SurfaceTextu
     //--------------------------------------------------------------------------------
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-        SetMatrix matrix = new SetMatrix( new Size(width,height),new Size(640,480));
-        textureView.setTransform(matrix.getMatrix());
+        //SetMatrix matrix = new SetMatrix( new Size(width,height),new Size(640,480));
+        //textureView.setTransform(matrix.getMatrix());
         try {
             Log.i("surface camera", "opening camera");
             openCamera();

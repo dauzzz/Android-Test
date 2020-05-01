@@ -1,12 +1,9 @@
-package com.example.myutils.utils;
+package com.example.myapplication;
 
-import android.app.Activity;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.util.Log;
 import android.util.Size;
-
-import androidx.appcompat.app.AppCompatActivity;
 
 public class SetMatrix {
     private Matrix matrix = new Matrix();
