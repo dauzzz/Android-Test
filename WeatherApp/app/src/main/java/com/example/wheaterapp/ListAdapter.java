@@ -73,7 +73,7 @@ public class ListAdapter extends BaseAdapter {
             JSONArray wxDaily = wx.getJSONArray("daily");
             JSONArray maxTDaily = maxT.getJSONArray("daily");
             JSONArray minTDaily = minT.getJSONArray("daily");
-            
+
             String day = jsonObject.getString("");
         } catch (JSONException e) {
             e.printStackTrace();

@@ -49,8 +49,9 @@ public class Https extends AsyncTask<Void,Void,JSONObject>{
             //private String
             URL url = new URL(weatherURL);
             httpsConnection = (HttpsURLConnection) url.openConnection(); //not establish a connection with the server, need to call connect()
-            httpsConnection.setSSLSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault());
+            //httpsConnection.setSSLSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault());
             httpsConnection.setDoInput(true);
+            Log.i("http","connecting");
             httpsConnection.connect();
             bufferedReader = new BufferedReader(new InputStreamReader(httpsConnection.getInputStream())); // if it's too long maybe I would change it to more readable way.
 
