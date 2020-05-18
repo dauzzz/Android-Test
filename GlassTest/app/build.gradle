@@ -7,6 +7,7 @@ android {
     defaultConfig {
         applicationId "com.example.glasstest"
         minSdkVersion 19
+        //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 19
         versionCode 1
         versionName "1.0"

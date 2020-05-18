@@ -3,6 +3,5 @@
 
     <item
         android:id="@+id/firstItem"
-        android:title="@string/firstTryItem"
-        android:icon="@drawable/abc_vector_test"/>
+        android:title="@string/firstTryItem" />
 </menu>
