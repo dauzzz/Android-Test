@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">TensorFlowModel</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="change_side">Change Side</string>
+    <string name="cat_ear">cat_ear</string>
+    <string name="hat">hat</string>
+    <string name="moustache">moustache</string>
+    <string name="pig_nose">pig_nose</string>
+    <string name="rabbit_ear">rabbit_ear</string>
+    <string name="sticker_button">sticker_button</string>
+</resources>

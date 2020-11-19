@@ -13,7 +13,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 @SuppressLint("Registered")
 public class CombineED extends AppCompatActivity {
 
-
     public ShowDecodedFragment showDecodedFragment;
     private final BlockingQueue<byte[]> sharedQ = new LinkedBlockingQueue<>();
 
@@ -21,7 +20,6 @@ public class CombineED extends AppCompatActivity {
     public void onCreate(Bundle s) {
         super.onCreate(s);
         setContentView(R.layout.activity_main);
-
 
         showDecodedFragment = new ShowDecodedFragment(sharedQ);
         FragmentTransaction transaction2 = getSupportFragmentManager().beginTransaction();
